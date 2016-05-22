@@ -1,13 +1,43 @@
 <?php
-	session_start();
-
 	include_once 'includes/db_connect.php';
 	include_once 'includes/functions.php';
 
+	session_start();
 	if (isset($_SESSION['token'])) {
 		if (!verifyLogin($_SESSION['user'], $_SESSION['token'], $_SESSION['role'], $mysqli))
 			header("Location: includes/logout.php");
 	}
+
+	if ($_REQUEST['username'] != "") {
+		if ($_REQUEST['password'] != "") {
+			if ($_REQUEST['hasBeenSubmitted']) {
+				if ($stmt = $mysqli->query("SELECT ID, Username, Password, roles_ID FROM user")) {
+					while ($row = mysqli_fetch_array($stmt)) {
+						if ($row['Username'] == $_REQUEST['username'] && password_verify($_REQUEST['password'], $row['Password'])) {
+							$token = password_hash($_REQUEST['username'].$row['Password'], PASSWORD_DEFAULT, array("cost" => 10));
+							$_SESSION['token'] = $token;
+							$_SESSION['user'] = $_REQUEST['username'];
+							$_SESSION['role'] = $row['roles_ID'];
+							$mysqli->query("INSERT INTO token (Token, user_ID) VALUES ('".$token."', '".$row['ID']."')");
+							if (isset($_SESSION['token'])) $message = '<div class="alert alert-success" role="alert">You are logged in!</div>';
+						}
+						else {
+							$message = '<div class="alert alert-warning" role="alert">Incorrect Username/Password!</div>';
+						}
+					}
+				}
+			}
+		}
+		else {
+			$message = '<div class="alert alert-warning" role="alert">Enter password!</div>';
+		}
+	}
+	else {
+		$message = '<div class="alert alert-warning" role="alert">Enter username!</div>';
+	}
+
+	if (isset($_SESSION['token']))
+		$message = '<div class="alert alert-success" role="alert">You are logged in!</div>';
 ?>
 
 <!DOCTYPE html>
@@ -31,16 +61,16 @@
 		        <span class="icon-bar"></span>
 		        <span class="icon-bar"></span>
 		      </button>
-		      <a class="navbar-brand" href="">OLib</a>
+		      <a class="navbar-brand" href="index.php">OLib</a>
 		    </div>
 
 		    <!-- Collect the nav links, forms, and other content for toggling -->
 		    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 		      <ul class="nav navbar-nav">
-		        <li class="active"><a href="">Books<span class="sr-only">(current)</span></a></li>
+		        <li><a href="index.php">Books</a></li>
 		        <?php
 		        	if (!isset($_SESSION['token'])) { 
-		        		echo '<li><a href="login.php">Login</a></li>';
+		        		echo '<li class="active"><a href="">Login<span class="sr-only">(current)</span></a></li>';
 		        		echo '<li><a href="create_user.php">Create user</a></li>';
 		        	}
 		        	else {
@@ -72,51 +102,41 @@
 		<div class="container">
 			<div class="row">
 
-				<div class="col-md-4">
-					<h3>Search</h3><hr>
+				<div class="col-md-offset-2 col-md-8">
+
+					<?php 
+					
+						if (!isset($_SESSION['token'])):
+						if ($_REQUEST['hasBeenSubmitted']) {echo $message;} 
+					?>
+					<h2>Login</h2><hr>
 					<ul class="nav nav-pills nav-stacked">
   						<form class="form-horizontal" action="" method="POST">
   							<div class="form-group">
-							    <label for="inputTitle" class="col-sm-2 control-label">Title</label>
+							    <label for="inputUsername" class="col-sm-2 control-label">Username</label>
 							    <div class="col-sm-10">
-							      	<input type="text" id="title" class="form-control" name="title" value="" placeholder="Title">
+							      	<input type="text" id="username" class="form-control" name="username" value="" placeholder="Username">
 							    </div>
 							</div>
 							<div class="form-group">
-							    <label for="inputAuthor" class="col-sm-2 control-label">Author</label>
+							    <label for="inputPassword" class="col-sm-2 control-label">Password</label>
 							    <div class="col-sm-10">
-							      	<input type="text" id="author" class="form-control" name="author" value="" placeholder="Author">
-							    </div>
-							</div>
-							<div class="form-group">
-							    <label for="inputCategory" class="col-sm-2 control-label">Subject</label>
-							    <div class="col-sm-10">
-							      	<select class="form-control" name="subject">
-							      		<option value=""></option>}
-									 	<?php include 'includes/get_subjects.php'; ?>
-									</select>
+							      	<input type="password" id="password" class="form-control" name="password" value="" placeholder="Password">
 							    </div>
 							</div>
 							<div class="form-group">
 							    <div class="col-sm-offset-2 col-sm-10">
-							      	<input type="submit" id="Submit" class="btn btn-primary" value="Search">
+							      	<input type="submit" id="Submit" class="btn btn-primary" value="Login">
 							    </div>
 							</div>
 							<input type="hidden" name="hasBeenSubmitted" value="true">
   						</form>
 					</ul>
-				</div>
-
-				<div class="col-md-8">
-				<h3>Books</h3><hr>
-				<?php 
-					if (isset($_REQUEST['hasBeenSubmitted'])) {
-						include 'includes/search_books.php';
-					}
-					else {
-						include 'includes/get_books.php';
-					}
-				?>
+					<?php 
+						else:
+							echo $message;
+						endif; 
+					?>
 				</div>
 			</div>
 		</div>

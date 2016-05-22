@@ -17,7 +17,8 @@
 						while($row3 = mysqli_fetch_assoc($stmt3))
 						{
 							echo 'Pages: '.$row['Pages'].'<br>';
-							echo 'Copies: '.$row3['Copies'].'<br><br>';
+							$free = $row3['Copies']-$rows;
+							echo 'Copies for rent: '.$free.'<br><br>';
 
 							if ($stmt4 = $mysqli->query("SELECT Name FROM subject JOIN booksubject ON subject.ID = booksubject.subject_ID JOIN book ON book.ID = booksubject.book_ID WHERE book.ID = ".$row['ID'])) {
 								while($row4 = mysqli_fetch_assoc($stmt4)) {
@@ -30,7 +31,8 @@
 								echo '<div class="alert alert-warning" role="alert">All copies are rented!</div>';
 							}
 							else {
-								echo '<a class="btn btn-primary pull-right" href="" role="button">Rent</a>';
+								if (isset($_SESSION['token']))
+								echo '<a class="btn btn-primary pull-right" href="includes/rent_book.php?book_ID='.$row['ID'].'" role="button">Rent</a>';
 							}
 						}
 					}
